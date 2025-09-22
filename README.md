@@ -37,7 +37,7 @@ uv sync
 
 ## Running the Agents
 
-- Launch the ADK web console (includes all agent-examples):
+- Launch the ADK web console in your Terminal (includes all agent-examples):
 
 ```bash
 uv run adk web
