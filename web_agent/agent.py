@@ -3,6 +3,10 @@
 The agent wraps a LangChain Tavily search tool so the Gemini model can answer
 questions by pulling in live web results. All code paths are annotated to highlight
 what each call contributes to the final agent behaviour.
+
+We lean on ``asyncio`` so the sample can await ADK's streaming events without
+blocking. That keeps the agent responsive while tools run in the background and
+mirrors how production web or CLI apps typically integrate ADK runners.
 """
 
 import asyncio
@@ -18,6 +22,7 @@ from langchain_community.tools import TavilySearchResults
 if not os.getenv("TAVILY_API_KEY"):
     print("Warning: TAVILY_API_KEY environment variable not set. Web search will fail.")
 
+# These IDs keep the sample self-contained; production code would pass real values.
 APP_NAME = "news_app"
 USER_ID = "1234"
 SESSION_ID = "session1234"
@@ -36,7 +41,7 @@ tavily_search = TavilySearchResults(
 adk_tavily_tool = LangchainTool(tool=tavily_search)
 
 # --- Agent definition --------------------------------------------------------
-# This agent can now invoke the Tavily search tool whenever Gemini decides it helps.
+# `my_agent` exposes Gemini plus the Tavily tool so the model can decide when to search.
 my_agent = Agent(
     name="langchain_tool_agent",
     model="gemini-2.0-flash",
@@ -50,29 +55,39 @@ root_agent = my_agent
 
 
 async def setup_session_and_runner():
-    """Create a temporary in-memory session plus the runner that executes the agent."""
+    """Spin up the short-lived session and runner that isolate each agent invocation.
+
+    ADK treats sessions as the state container for a conversation. Keeping this helper
+    separate makes it clear that every call gets a fresh context, so tests or demos do
+    not bleed state into one another.
+    """
+    # The in-memory service is enough for demos; persistent apps would swap this out.
     session_service = InMemorySessionService()
     session = await session_service.create_session(
         app_name=APP_NAME,
         user_id=USER_ID,
         session_id=SESSION_ID,
     )
+    # Runner handles orchestrating the agent's tool invocations and streaming outputs.
     runner = Runner(agent=my_agent, app_name=APP_NAME, session_service=session_service)
     return session, runner
 
 
 async def call_agent_async(query: str) -> None:
-    """Send a user query to the agent and stream the final response to stdout."""
+    """Convenience entry point that delivers a user query and prints the agent reply.
+
+    This wrapper is what other scripts or notebooks import. It hides the Boilerplate
+    around session setup and streaming so callers can simply await a response.
+    """
+    # ADK expects user input as `Content` objects; we wrap the raw string accordingly.
     content = types.Content(role="user", parts=[types.Part(text=query)])
+    # Create fresh session context and an execution runner for this invocation.
     session, runner = await setup_session_and_runner()
+    # `run_async` yields streaming events, including intermediate tool calls and the final answer.
     events = runner.run_async(user_id=USER_ID, session_id=SESSION_ID, new_message=content)
 
     async for event in events:
         if event.is_final_response():
+            # The final event bundles the agent's concluding message; echo it to stdout.
             final_response = event.content.parts[0].text
             print("Agent Response:", final_response)
-
-
-if __name__ == "__main__":
-    # Allow `python web_agent/agent.py` to execute an empty query for quick smoke tests.
-    asyncio.run(call_agent_async(""))
