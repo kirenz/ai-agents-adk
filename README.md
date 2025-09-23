@@ -1,5 +1,11 @@
 # AI Agents with Google ADK
 
+```mermaid
+flowchart LR
+    id["This ❤ Unicode"]
+```
+
+
 This repository contains a collection of experimental agents built on top of the Google Agent Development Kit (ADK). The agents highlight different workflows:
 
 - `personal_assistant` exposes a simple text assistant.
