@@ -12,16 +12,9 @@ The examples target Python 3.12 and the Gemini model family.
 
 ## Prerequisites
 
-- Python 3.12+
 - Google AI Studio API access. Create a key in [Google AI Studio](https://aistudio.google.com/prompts/new_chat).
 - Tavily account and API key for web-enabled agents. Sign up at [tavily.com](https://www.tavily.com/).
 
-Store your credentials in a `.env` file loaded by your tooling:
-
-```bash
-GOOGLE_API_KEY="<your-google-ai-studio-key>"
-TAVILY_API_KEY="<your-tavily-key>"
-```
 
 ## Installation
 
@@ -35,17 +28,22 @@ TAVILY_API_KEY="<your-tavily-key>"
 uv sync
 ```
 
+4. Credential Setup: Store your credentials (API-keys) in `.env.example` and rename the file to `.env` (make sure to add .env to your .gitignore):
+
+```bash
+GOOGLE_API_KEY="<your-google-ai-studio-key>"
+TAVILY_API_KEY="<your-tavily-key>"
+```
+
 ## Running the Agents
 
-- Launch the ADK web console in your Terminal (includes all agent-examples):
+Launch the ADK web console in your Terminal (includes all agent-examples):
 
 ```bash
 uv run adk web
 ```
 
 This uses the ADK launcher bundled with the project dependencies. 
-
-Ensure the `.env` file is loaded so both API keys are available.
 
 
 ## Notes
